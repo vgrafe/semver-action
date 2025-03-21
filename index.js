@@ -17,7 +17,8 @@ async function main() {
   const additionalCommits = core.getInput('additionalCommits').split('\n').map(l => l.trim()).filter(l => l !== '')
   const fromTag = core.getInput('fromTag')
   const maxTagsToFetch = _.toSafeInteger(core.getInput('maxTagsToFetch') || 100)
-  const fetchLimit = (maxTagsToFetch < 1 || maxTagsToFetch > 100) ? 100 : maxTagsToFetch
+  const perPage = 100 // Max number of tags per page in GitHub API
+  const maxPages = 10 // Max number of pages to fetch
   const fallbackTag = core.getInput('fallbackTag')
   const tagFilter = core.getInput('tagFilter')
 
@@ -42,39 +43,72 @@ async function main() {
 
   if (!fromTag) {
     // GET LATEST + PREVIOUS TAGS
+    const tagsList = []
+    let hasNextPage = true
+    let cursor = null
+    let page = 0
 
-    const tagsRaw = await gh.graphql(`
-      query lastTags (
-        $owner: String!
-        $repo: String!
-        $fetchLimit: Int
-        ) {
-        repository (
-          owner: $owner
-          name: $repo
+    while (hasNextPage && page < maxPages) {
+      page++
+      const limit = Math.min(perPage, maxTagsToFetch - tagsList.length)
+
+      if (limit <= 0) {
+        hasNextPage = false
+        break
+      }
+
+      core.info(`Fetching tags page ${page} (limit: ${limit})`)
+
+      const tagsRaw = await gh.graphql(`
+        query lastTags (
+          $owner: String!
+          $repo: String!
+          $limit: Int!
+          $cursor: String
           ) {
-          refs(
-            first: $fetchLimit
-            refPrefix: "refs/tags/"
-            orderBy: { field: TAG_COMMIT_DATE, direction: DESC }
+          repository (
+            owner: $owner
+            name: $repo
             ) {
-            nodes {
-              name
-              target {
-                oid
+            refs(
+              first: $limit
+              after: $cursor
+              refPrefix: "refs/tags/"
+              orderBy: { field: TAG_COMMIT_DATE, direction: DESC }
+              ) {
+              nodes {
+                name
+                target {
+                  oid
+                }
+              }
+              pageInfo {
+                hasNextPage
+                endCursor
               }
             }
           }
         }
-      }
-    `,
-      {
-        owner,
-        repo,
-        fetchLimit
-      })
+      `,
+        {
+          owner,
+          repo,
+          limit,
+          cursor
+        })
 
-    const tagsList = _.get(tagsRaw, 'repository.refs.nodes', [])
+      const nodes = _.get(tagsRaw, 'repository.refs.nodes', [])
+      const pageInfo = _.get(tagsRaw, 'repository.refs.pageInfo', {})
+
+      tagsList.push(...nodes)
+
+      // Update cursor and check if more pages are available
+      cursor = pageInfo.endCursor
+      hasNextPage = pageInfo.hasNextPage && tagsList.length < maxTagsToFetch
+    }
+
+    core.info(`Fetched a total of ${tagsList.length} tags`)
+
     if (tagsList.length < 1) {
       if (fallbackTag && semver.valid(fallbackTag)) {
         core.info(`Using fallback tag: ${fallbackTag}`)
@@ -119,9 +153,9 @@ async function main() {
         latestTag = { name: fallbackTag }
       } else {
         if (prefix) {
-          return core.setFailed(`None of the ${fetchLimit} latest tags are valid semver or match the specified prefix!`)
+          return core.setFailed(`None of the ${tagsList.length} latest tags are valid semver or match the specified prefix!`)
         } else {
-          return core.setFailed(skipInvalidTags ? `None of the ${fetchLimit} latest tags are valid semver!` : 'Latest tag is invalid (does not conform to semver)!')
+          return core.setFailed(skipInvalidTags ? `None of the ${tagsList.length} latest tags are valid semver!` : 'Latest tag is invalid (does not conform to semver)!')
         }
       }
     }
