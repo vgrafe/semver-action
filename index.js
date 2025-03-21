@@ -16,8 +16,8 @@ async function main() {
   const prefix = core.getInput('prefix') || ''
   const additionalCommits = core.getInput('additionalCommits').split('\n').map(l => l.trim()).filter(l => l !== '')
   const fromTag = core.getInput('fromTag')
-  const maxTagsToFetch = _.toSafeInteger(core.getInput('maxTagsToFetch') || 1000)
-  const fetchLimit = (maxTagsToFetch < 1 || maxTagsToFetch > 1000) ? 1000 : maxTagsToFetch
+  const maxTagsToFetch = _.toSafeInteger(core.getInput('maxTagsToFetch') || 100)
+  const fetchLimit = (maxTagsToFetch < 1 || maxTagsToFetch > 100) ? 100 : maxTagsToFetch
   const fallbackTag = core.getInput('fallbackTag')
   const tagFilter = core.getInput('tagFilter')
 
@@ -181,12 +181,12 @@ async function main() {
       repo,
       basehead: `${prefix}${latestTag.name}...${branch}`,
       page: curPage,
-      per_page: 1000
+      per_page: 100
     })
     totalCommits = _.get(commitsRaw, 'data.total_commits', 0)
     const rangeCommits = _.get(commitsRaw, 'data.commits', [])
     commits.push(...rangeCommits)
-    if ((curPage - 1) * 1000 + rangeCommits.length < totalCommits) {
+    if ((curPage - 1) * 100 + rangeCommits.length < totalCommits) {
       hasMoreCommits = true
     }
   } while (hasMoreCommits)
