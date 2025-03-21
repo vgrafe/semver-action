@@ -4,7 +4,7 @@ const _ = require('lodash')
 const cc = require('@conventional-commits/parser')
 const semver = require('semver')
 
-async function main () {
+async function main() {
   const token = core.getInput('token')
   const branch = core.getInput('branch')
   const gh = github.getOctokit(token)
@@ -28,7 +28,7 @@ async function main () {
     patchAll: (core.getInput('patchAll') === true || core.getInput('patchAll') === 'true')
   }
 
-  function outputVersion (version) {
+  function outputVersion(version) {
     core.exportVariable('next', `${prefix}v${version}`)
     core.exportVariable('nextStrict', `${prefix}${version}`)
 
@@ -68,11 +68,11 @@ async function main () {
         }
       }
     `,
-    {
-      owner,
-      repo,
-      fetchLimit
-    })
+      {
+        owner,
+        repo,
+        fetchLimit
+      })
 
     const tagsList = _.get(tagsRaw, 'repository.refs.nodes', [])
     if (tagsList.length < 1) {
@@ -181,12 +181,12 @@ async function main () {
       repo,
       basehead: `${prefix}${latestTag.name}...${branch}`,
       page: curPage,
-      per_page: 100
+      per_page: 1000
     })
     totalCommits = _.get(commitsRaw, 'data.total_commits', 0)
     const rangeCommits = _.get(commitsRaw, 'data.commits', [])
     commits.push(...rangeCommits)
-    if ((curPage - 1) * 100 + rangeCommits.length < totalCommits) {
+    if ((curPage - 1) * 1000 + rangeCommits.length < totalCommits) {
       hasMoreCommits = true
     }
   } while (hasMoreCommits)
