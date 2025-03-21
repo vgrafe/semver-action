@@ -39,7 +39,7 @@ inputs:
   maxTagsToFetch:
     description: Maximum number of tags to fetch from latest.
     required: false
-    default: '10'
+    default: '1000'
   noNewCommitBehavior:
     description: Whether to exit with an error, warning or silently when there are no new commits since the latest tag. (error, warn, current, silent)
     required: false

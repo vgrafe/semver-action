@@ -16,8 +16,8 @@ async function main () {
   const prefix = core.getInput('prefix') || ''
   const additionalCommits = core.getInput('additionalCommits').split('\n').map(l => l.trim()).filter(l => l !== '')
   const fromTag = core.getInput('fromTag')
-  const maxTagsToFetch = _.toSafeInteger(core.getInput('maxTagsToFetch') || 10)
-  const fetchLimit = (maxTagsToFetch < 1 || maxTagsToFetch > 100) ? 10 : maxTagsToFetch
+  const maxTagsToFetch = _.toSafeInteger(core.getInput('maxTagsToFetch') || 1000)
+  const fetchLimit = (maxTagsToFetch < 1 || maxTagsToFetch > 1000) ? 1000 : maxTagsToFetch
   const fallbackTag = core.getInput('fallbackTag')
   const tagFilter = core.getInput('tagFilter')
 
