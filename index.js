@@ -18,7 +18,7 @@ async function main() {
   const fromTag = core.getInput('fromTag')
   const maxTagsToFetch = _.toSafeInteger(core.getInput('maxTagsToFetch') || 100)
   const perPage = 100 // Max number of tags per page in GitHub API
-  const maxPages = 10 // Max number of pages to fetch
+  const maxPages = 30 // Max number of pages to fetch
   const fallbackTag = core.getInput('fallbackTag')
   const tagFilter = core.getInput('tagFilter')
 
